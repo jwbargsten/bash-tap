@@ -92,7 +92,7 @@ function done_testing() {
         _bt_caller_error "done_testing was already called"
     fi
 
-    if [ "$_bt_expected_tests" != 0 -a "$num_tests" != "$_bt_expected_tests" ]; then
+    if [ "$_bt_expected_tests" != 0 ] && [ "$num_tests" != "$_bt_expected_tests" ]; then
         ok 0 "planned to run $_bt_expected_tests but done_testing expects $num_tests"
     else
         _bt_expected_tests="$num_tests"
@@ -270,7 +270,7 @@ function diag() {
 
 function start_output_capture() {
     if [ $_bt_output_capture = 1 ]; then
-        finish_output_capture
+        finish_output_capture "$@"
         _bt_caller_error "Can't start output capture while already active"
     fi
     local stdout_tmpfile="/tmp/bash-itunes-test-out.$$"
@@ -322,7 +322,7 @@ function _bt_caller_error() {
     local frame_num=2
     until [ "$file" != "$thisfile" ]; do
         frame=$(caller "$frame_num")
-        IFS=' ' read line func file <<<"$frame"
+        IFS=' ' read -r line _ file <<<"$frame"
     done
 
     _bt_die "Error: $message, on line $line of $file"
@@ -364,6 +364,11 @@ function _bt_on_exit() {
     for exit_cmd in "${_bt_on_exit_cmds[@]}"; do
         diag "cleanup: $exit_cmd"
         eval "$exit_cmd"
+    done
+    for test_ok in "${_bt_test_ok[@]}"; do
+      if [[ "$test_ok" == "0" ]]; then
+        exit 1
+      fi
     done
     # TODO: check that we've output a plan/results
 }
